@@ -1,6 +1,7 @@
 {
 
     "name": "starling/starling",
-    "build-path": {
+    "extra": {
+	"as-source-path":"starling/src"
     }
 }
