@@ -1,7 +1,7 @@
 {
 
-    "name": "starling/starling",
+    "name": "crazyroosters/starling",
     "extra": {
-	"as-source-path":"starling/src"
+		"as-source-path":"starling/src"
     }
 }
