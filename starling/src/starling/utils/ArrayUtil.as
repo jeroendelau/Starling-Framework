@@ -10,6 +10,8 @@
 
 package starling.utils
 {
+    import avmplus.getQualifiedClassName;
+    
     import starling.errors.AbstractClassError;
 
     /** A utility class containing methods related to the Array class.
@@ -62,5 +64,29 @@ package starling.utils
             array.length = length - 1;
             return object;
         }
+		
+		/**
+		 * Deep copy an array
+		 */
+		public static function copy(arr:Array):Array 
+		{
+			// if the other array is a falsy value, return
+			var copied:Array=[];
+			
+			for (var i:int = 0 ; i < arr.length; i++) {
+				if(arr[i] is Array){			
+					copied.push(ArrayUtil.copy(arr[i]));
+				}else{
+					copied.push(arr[i]);
+				}
+			}
+			return copied;
+		}
+		
+		public static function isArray(val:*):Boolean
+		{
+			var name:String = getQualifiedClassName(val);
+			return (name == 'Array');
+		}
     }
 }

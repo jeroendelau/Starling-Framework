@@ -10,12 +10,30 @@
 
 package tests.events
 {
+    
+    import flash.utils.setTimeout;
+    
     import flexunit.framework.Assert;
     
+    import org.flexunit.asserts.assertEquals;
+    import org.flexunit.asserts.assertStrictlyEquals;
+    import org.flexunit.asserts.assertTrue;
+    import org.hamcrest.assertThat;
+    import org.hamcrest.object.instanceOf;
+    
+    import spurs.statemachine.State;
+    import spurs.statemachine.StateEvent;
+    import spurs.test.flexunit.CallbackHandler;
+    
     import starling.display.Sprite;
+    import starling.events.Dispatch;
+    import starling.events.DispatchLock;
     import starling.events.Event;
     import starling.events.EventDispatcher;
+    import starling.events.TouchEvent;
+    
     import tests.Helpers;
+    import tests.events.event.MockEvent;
     
     public class EventTest
     {		
@@ -319,5 +337,91 @@ package tests.events
                 parent.dispatchEvent(event);
             }
         }
+		
+		[Test]
+		public function testCallback():void
+		{
+			const eventType:String = "test";
+			
+			var dispatcher:Sprite = new Sprite();
+			var data:Object = {"test":"data"};
+			var returnData:Object;
+			
+			dispatcher.addEventListener(eventType, onEvent);
+			var dispatch:Dispatch = dispatcher.dispatchEventWith(eventType, true, data, onComplete);
+			
+			Assert.assertNotNull(dispatch);
+			Assert.assertStrictlyEquals(returnData, data);
+			
+			function onEvent(event:Event):void
+			{
+				
+			}
+			
+			function onComplete(d:Object):void
+			{
+				returnData = d;
+			}
+		}
+		
+		[Test]
+		public function testTypedTest():void
+		{
+			const eventType:String = "test";
+			
+			var dispatcher:Sprite = new Sprite();
+			var data:Object = {"testVar":"data"};
+			var event:Event;
+			
+			dispatcher.addEventListener(eventType, onEvent);
+			var dispatch:Dispatch = dispatcher.dispatchEventClassWith(MockEvent, eventType, false, data, null);
+			
+			assertThat(event, instanceOf(MockEvent));
+			
+			var me:MockEvent = event as MockEvent;
+			assertEquals("data", me.testVar);
+			
+			function onEvent(e:Event):void
+			{
+				event = e;	
+			}
+			
+		}
+		
+		[Test(async)]
+		public function testLockedEvent():void
+		{
+			const eventType:String = "test";
+			
+			var dispatcher:Sprite = new Sprite();
+			var locker:Sprite = new Sprite();
+			var data:Object = {"testVar":"data"};
+			var event:Event;
+			var lock:DispatchLock;
+			
+			var callback:Function = CallbackHandler.asyncHandler(this, testCallbackAfterLock, data);
+			
+			dispatcher.addEventListener(eventType, onEvent);
+			dispatcher.dispatchEventWith(eventType, false, data, callback);
+			
+			function onEvent(e:Event):void
+			{
+				event = e;	
+				e.dispatch.addLock(locker, eventType);
+				setTimeout(release, 1000);
+			}
+			
+			function release():void
+			{
+				data.testVar = "released";
+				locker.dispatchEventWith(eventType);	
+			}
+			
+		}
+		
+		public function testCallbackAfterLock(data:Object):void
+		{
+			assertEquals(data.testVar, "released");
+		}
     }
 }
