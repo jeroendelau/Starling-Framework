@@ -10,6 +10,8 @@
 
 package starling.events
 {
+    import flash.utils.Dictionary;
+    import flash.utils.getDefinitionByName;
     import flash.utils.getQualifiedClassName;
     
     import starling.core.starling_internal;
@@ -76,6 +78,12 @@ package starling.events
          *  from which it cannot recover, e.g. a lost device context. */
         public static const FATAL_ERROR:String = "fatalError";
 
+		/** An event type to be utilized in custom events. Not used by Starling right now. */
+		public static const START:String = "start";
+		/** An event type to be utilized in custom events. Not used by Starling right now. */
+		public static const FINISH:String = "finish";
+		/** An event type to be utilized in custom events. Not used by Starling right now. */
+		public static const FAIL:String = "fail";
         /** An event type to be utilized in custom events. Not used by Starling right now. */
         public static const CHANGE:String = "change";
         /** An event type to be utilized in custom events. Not used by Starling right now. */
@@ -91,6 +99,12 @@ package starling.events
         /** An event type to be utilized in custom events. Not used by Starling right now. */
         public static const READY:String = "ready";
         
+		public function get dispatch():Dispatch {return _dispatch;}
+		public function set dispatch(value:Dispatch):void{ _dispatch = value}
+		protected var _dispatch:Dispatch;
+		
+		private static var _typePool:Dictionary = new Dictionary;
+		
         private static var sEventPool:Vector.<Event> = new <Event>[];
         
         private var mTarget:EventDispatcher;
@@ -107,7 +121,44 @@ package starling.events
             mType = type;
             mBubbles = bubbles;
             mData = data;
+			setup(data);
         }
+		
+		/**
+		 * Setup all vars after resoring from the pool
+		 */
+		public function setup(data:Object = null):Event
+		{
+			if(data !== null){
+				_parseParams(data);
+			}
+			return this;
+		}
+		
+		/**
+		 * Parse parameters. 
+		 * Events that inherit should use this to repopulate
+		 */
+		protected function _parseParams(params:Object = null):void
+		{
+			if(params == null) return;
+			if(params.dispatch != null) this._dispatch = params.dispatch;
+			if(_dispatch == null)
+			{
+				_dispatch = Dispatch.fromPool();
+			}
+			
+		}
+		
+		/**
+		 * Remove all references before storing in the pool
+		 */
+		public function dismantle():void
+		{
+			//do not reset the dispatch, it will still be needed
+			//after the event has been dispatched
+			_dispatch = null;
+		}
         
         /** Prevents listeners at the next bubble stage from receiving the event. */
         public function stopPropagation():void
@@ -161,6 +212,42 @@ package starling.events
         internal function get stopsImmediatePropagation():Boolean { return mStopsImmediatePropagation; }
         
         // event pooling
+		//
+		// POOLING FUNCTIONS
+		//
+		internal static function poolSize():int
+		{
+			var size:int = 0;
+			for(var i:* in _typePool)
+			{
+				size += _typePool[i].length;
+			}
+			return size;
+			
+		}
+		
+		internal static function fromTypedPool(classType:Class, type:String, bubbles:Boolean=false, data:Object=null):Event
+		{
+			var pool:Vector.<Event> = _getPool(classType);
+			
+			if (pool.length) {
+				return pool.pop().reset(type, bubbles, data);
+			}
+			else return new classType(type, bubbles, data);
+		}
+		
+		internal static function toTypedPool(event:Event):void
+		{
+			var pool:Vector.<Event> = _getPool(getDefinitionByName(getQualifiedClassName(event)) as Class);
+			event.dismantle();
+			pool[pool.length] = event; // avoiding 'push'
+		}
+		
+		private static function _getPool(classType:Class):Vector.<Event>
+		{
+			if(!(classType in _typePool)){_typePool[classType] = new Vector.<Event>;}
+			return _typePool[classType];
+		}
         
         /** @private */
         starling_internal static function fromPool(type:String, bubbles:Boolean=false, data:Object=null):Event
@@ -179,6 +266,7 @@ package starling.events
         /** @private */
         starling_internal function reset(type:String, bubbles:Boolean=false, data:Object=null):Event
         {
+			setup(data);
             mType = type;
             mBubbles = bubbles;
             mData = data;

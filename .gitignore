@@ -9,6 +9,7 @@
 # =================================================================================================
 
 # Build and Release Folders
+bin/
 bin-debug/
 bin-release/
 starling/doc/html/
@@ -16,6 +17,8 @@ tests/libs/
 out/
 
 # Eclipse / Flash Builder
+.project
+.FlexLibProperties
 .settings/
 .flexProperties
 .FlexUnitSettings

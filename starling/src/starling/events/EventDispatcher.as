@@ -42,6 +42,11 @@ package starling.events
         /** Helper object. */
         private static var sBubbleChains:Array = [];
         
+		//dispatch aggregator
+		public static function get dispatches():Vector.<Dispatch>{return _dispatches;}
+		protected static var _dispatches:Vector.<Dispatch> = new Vector.<Dispatch>();
+		
+		
         /** Creates an EventDispatcher. */
         public function EventDispatcher()
         {  }
@@ -187,15 +192,82 @@ package starling.events
         /** Dispatches an event with the given parameters to all objects that have registered 
          *  listeners for the given type. The method uses an internal pool of event objects to 
          *  avoid allocations. */
-        public function dispatchEventWith(type:String, bubbles:Boolean=false, data:Object=null):void
+        public function dispatchEventWith(type:String, bubbles:Boolean=false, data:Object=null, onComplete:Function = null):Dispatch
         {
-            if (bubbles || hasEventListener(type)) 
-            {
-                var event:Event = Event.fromPool(type, bubbles, data);
-                dispatchEvent(event);
-                Event.toPool(event);
-            }
+           return dispatchEventClassWith(Event, type, bubbles, data, onComplete);
         }
+		
+		/**
+		 * Dispatch an event of a certain class type. This will get the event from the event pool and
+		 * populate it with the provide data.
+		 */
+		public function dispatchEventClassWith(eventClass:Class, type:String, bubbles:Boolean=false, data:Object=null, onComplete:Function = null):Dispatch
+		{
+			if (bubbles || hasEventListener(type)) 
+			{
+				var event:Event = _prepareEvent(eventClass, type, onComplete, bubbles, data);
+				dispatchEvent(event);
+				return _cleanupEvent(event);
+			}
+			
+			return null;
+		}
+		
+		/**
+		 * If a large list of listeners have not subscribed to the event, broadcast the event to them instead.
+		 * Provide a list of of event listeners, and the event will be called on every one.
+		 */
+		public function broadcastEventClassWith(listeners:*, eventClass:Class, type:String,  onComplete:Function = null, bubbles:Boolean=false, data:Object=null):Dispatch
+		{
+			if (bubbles || hasEventListener(type)) 
+			{
+				var event:Event = _prepareEvent(eventClass, type, onComplete, bubbles, data);
+				
+				//dispatch the event
+				for (var i:int = 0; i < listeners.length; i++) 
+				{
+					listeners[i].dispatchEvent(event);
+				}
+				
+				return _cleanupEvent(event);
+			}
+			
+			return null;
+		}
+		
+		protected function _prepareEvent(eventClass:Class, type:String,  onComplete:Function = null, bubbles:Boolean=false, data:Object=null):Event
+		{
+			var event:Event = Event.fromTypedPool(eventClass, type, bubbles, data);
+			
+			if(onComplete !== null){
+				event.dispatch.onComplete = onComplete;
+				event.dispatch.data = data;
+				addDispatch(event.dispatch);
+			}
+			
+			return event;
+		}
+		
+		protected function _cleanupEvent(event:Event):Dispatch
+		{
+			var dispatch:Dispatch = null;
+			
+			//If there are no locks callback and remove, 
+			//providing it wasn't already removed by an instant
+			//a listner
+			if(event.dispatch !== null && dispatches.indexOf(event.dispatch)>=0){
+				dispatch = event.dispatch;
+				event.dispatch.callbackIfUnlocked();
+			}	
+			
+			
+			//Store the event
+			Event.toTypedPool(event);
+			
+			//return the dispatch
+			return dispatch;
+		}
+		
         
         /** Returns if there are listeners registered for a certain event type. */
         public function hasEventListener(type:String):Boolean
@@ -203,5 +275,36 @@ package starling.events
             var listeners:Vector.<Function> = mEventListeners ? mEventListeners[type] : null;
             return listeners ? listeners.length != 0 : false;
         }
+		
+		/**
+		 * Pushes dispatches into the the dispatch array
+		 */
+		internal static function addDispatch(dispatch:Dispatch):void
+		{
+			_dispatches.push(dispatch);
+		}
+		
+		/**
+		 * Removes a dispatch from the dipatch array
+		 */
+		internal static function removeDispatch(dispatch:Dispatch):void
+		{
+			var i:int = _dispatches.indexOf(dispatch);
+			if(i >= 0)
+			{
+				_dispatches.splice(i, 1);
+			}
+		}
+		
+		public static function getPoolSizes():String
+		{
+			var sizes:String = "";
+			sizes += "E"+Event.poolSize().toString();
+			sizes += ",D"+Dispatch.poolSize().toString();
+			sizes += ",L"+DispatchLock.poolSize().toString();
+			
+			return sizes;	
+		}
+
     }
 }
