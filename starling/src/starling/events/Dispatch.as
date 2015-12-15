@@ -32,6 +32,13 @@ package starling.events
 		public function get id():String { return _generateId()};
 		protected var _id:String = "";
 		
+		/**
+		 * Reference to the original event
+		 */
+		public var type:String;
+		
+		public var dispatcher:IEventDispatcher;
+		
 		public function Dispatch()
 		{
 			_locks = new Vector.<DispatchLock>();
@@ -64,10 +71,12 @@ package starling.events
 		
 		internal static function fromPool():Dispatch
 		{
+			//return new Dispatch();
 			var dispatch:Dispatch;
 			
 			if(_dispatchPool.length){
 				dispatch = _dispatchPool.pop();
+				EventDispatcher.log("New dispatch from pool: " + dispatch.id);
 			}
 			else dispatch = new Dispatch();
 			
@@ -83,11 +92,19 @@ package starling.events
 		 * The lock will be removed once the unlock event is fired by the locking
 		 * EventDispatcher
 		 */
-		public function addLock(by:EventDispatcher, unlockEvent:String, key:String= null):void
+		public function addLock(by:IEventDispatcher, unlockEvent:String, key:String= null):void
 		{
+			if(!onComplete)
+			{
+				throw new Error(id + ": Can't add lock to dispatch without onComplete callback. Already fired?");
+			}
 			key = key===null?"*":key;
 			locks.push(DispatchLock.fromPool(by, unlockEvent, key));
 			by.addEventListener(unlockEvent, _onUnlock);
+			
+			EventDispatcher.logger(id+": Added lock, on: "+unlockEvent+", key: "+key+", lock count: "+locks.length.toString(), 1, "EventDispatcher");
+			EventDispatcher.logger(id+": "+locks[locks.length-1].key);
+			
 		}
 		
 		public function callbackIfUnlocked():void
@@ -95,13 +112,12 @@ package starling.events
 			if(locks.length == 0)
 			{
 				//If a callback is registered callback
-				if(onComplete !== null)
-				{
-					var numArgs:int = onComplete.length;
+				var numArgs:int = onComplete.length;
 				
-					if (numArgs == 0) onComplete();
-					else if (numArgs == 1) onComplete(data);
-				}
+				if (numArgs == 0) onComplete();
+				else if (numArgs == 1) onComplete(data);
+				else if (numArgs == 2) onComplete(data, this);
+				
 				EventDispatcher.removeDispatch(this);
 				Dispatch.toPool(this);
 			}
@@ -138,12 +154,16 @@ package starling.events
 			}
 			
 			//merge the data, aware that this might cause problems
-			if(data == null)
+			if(e.data && e.data.forwardData !== undefined && e.data.forwardData)
 			{
-				data = e.data;
-			}else{
-				data = ObjectUtil.merge(data, e.data);	
+				if(data == null)
+				{
+					data = e.data;
+				}else{
+					data = ObjectUtil.merge(data, e.data);	
+				}
 			}
+			
 			callbackIfUnlocked();
 		}
 		
@@ -152,10 +172,29 @@ package starling.events
 		 */
 		private function _removeLock(lock:DispatchLock):void
 		{
-			lock.by.removeEventListener(lock.releaseOn, _onUnlock);
+			_removeListener(lock);
 			var i:int = locks.indexOf(lock);
 			if(i>=0)locks.splice(i,1);
 			DispatchLock.toPool(lock);
+			
+			EventDispatcher.logger(id+": Removing lock, on: "+lock.releaseOn+", key: "+lock.key+", lock count: "+locks.length.toString() + "\n" + toString(), 1, "EventDispatcher");
+			
+		}
+		
+		private function _removeListener(lock:DispatchLock):void
+		{
+			var count:int = 0;
+			for (var i:int = 0; i < locks.length; i++) 
+			{
+				if(lock.by === locks[i].by && lock.releaseOn === locks[i].releaseOn)
+				{
+					count++;
+				}
+			}
+			if(count == 1)
+			{
+				lock.by.removeEventListener(lock.releaseOn, _onUnlock);
+			}
 		}
 		
 		private function _generateId():String

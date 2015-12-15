@@ -10,6 +10,13 @@
 
 package starling.events
 {
+	import flash.utils.getTimer;
+	
+	import starling.core.Starling;
+	import starling.core.starling_internal;
+	
+	use namespace starling_internal;
+
     /** An EnterFrameEvent is triggered once per frame and is dispatched to all objects in the
      *  display tree.
      *
@@ -30,5 +37,24 @@ package starling.events
         
         /** The time that has passed since the last frame (in seconds). */
         public function get passedTime():Number { return data as Number; }
+		
+		public function get timeRemaining():Number { return frameTime - timePassed; };
+		
+		public function get timePassed():Number { return getTimer() - _startTime; }
+		
+		protected var _startTime:Number;
+		
+		public var frameTime:Number = 0;
+		
+		override starling_internal function reset(type:String, bubbles:Boolean=false, data:Object=null):Event
+		{
+			_startTime = getTimer();
+			if(frameTime == 0)
+			{
+				frameTime = 1/Starling.current.nativeStage.frameRate;
+			}
+			
+		 	return super.reset(type, bubbles, data);
+		}
     }
 }

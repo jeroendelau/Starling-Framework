@@ -8,9 +8,9 @@ package starling.events
 		 */
 		private static var _lockPool:Vector.<DispatchLock> = new Vector.<DispatchLock>();
 		
-		public function get by():EventDispatcher {return _by;}
-		public function set by(value:EventDispatcher):void{ _by = value}
-		protected var _by:EventDispatcher;
+		public function get by():IEventDispatcher {return _by;}
+		public function set by(value:IEventDispatcher):void{ _by = value}
+		protected var _by:IEventDispatcher;
 		
 		public function get releaseOn():String {return _releaseOn;}
 		public function set releaseOn(value:String):void{ _releaseOn = value}
@@ -27,7 +27,7 @@ package starling.events
 		public function set key(value:String):void{ _key = value}
 		protected var _key:String;
 		
-		public function DispatchLock(by:EventDispatcher, releaseOn:String, key:String)
+		public function DispatchLock(by:IEventDispatcher, releaseOn:String, key:String)
 		{
 			setup(by, releaseOn, key);
 		}
@@ -53,7 +53,7 @@ package starling.events
 			return _lockPool.length;	
 		}
 		
-		internal function setup(by:EventDispatcher, releaseOn:String, key:String = "*"):DispatchLock
+		internal function setup(by:IEventDispatcher, releaseOn:String, key:String = "*"):DispatchLock
 		{
 			_by = by;
 			_releaseOn = releaseOn;
@@ -67,7 +67,7 @@ package starling.events
 			_lockPool[_lockPool.length] = lock;
 		}
 		
-		internal static function fromPool(by:EventDispatcher, releaseOn:String, key:String = "*"):DispatchLock
+		internal static function fromPool(by:IEventDispatcher, releaseOn:String, key:String = "*"):DispatchLock
 		{
 			if(_lockPool.length) return _lockPool.pop().setup(by, releaseOn, key);
 			else return new DispatchLock(by, releaseOn, key);

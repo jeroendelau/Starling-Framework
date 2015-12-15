@@ -12,7 +12,8 @@ package starling.events
 {
     import flash.utils.Dictionary;
     import flash.utils.getDefinitionByName;
-    import flash.utils.getQualifiedClassName;
+    
+    import avmplus.getQualifiedClassName;
     
     import starling.core.starling_internal;
     import starling.utils.formatString;
@@ -129,7 +130,7 @@ package starling.events
 		 */
 		public function setup(data:Object = null):Event
 		{
-			if(data !== null){
+			if(data !== null || data == 0){
 				_parseParams(data);
 			}
 			return this;
@@ -142,10 +143,13 @@ package starling.events
 		protected function _parseParams(params:Object = null):void
 		{
 			if(params == null) return;
+			var name:String = getQualifiedClassName(params);
+			if(name != 'Object') return;
+			
 			if(params.dispatch != null) this._dispatch = params.dispatch;
 			if(_dispatch == null)
 			{
-				_dispatch = Dispatch.fromPool();
+				//_dispatch = Dispatch.fromPool();
 			}
 			
 		}

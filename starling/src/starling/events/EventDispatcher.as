@@ -11,6 +11,7 @@
 package starling.events
 {
     import flash.utils.Dictionary;
+    import flash.utils.getQualifiedClassName;
     
     import starling.core.starling_internal;
     import starling.display.DisplayObject;
@@ -35,7 +36,7 @@ package starling.events
      *  @see Event
      *  @see starling.display.DisplayObject DisplayObject
      */
-    public class EventDispatcher
+    public class EventDispatcher implements IEventDispatcher
     {
         private var mEventListeners:Dictionary;
         
@@ -46,6 +47,8 @@ package starling.events
 		public static function get dispatches():Vector.<Dispatch>{return _dispatches;}
 		protected static var _dispatches:Vector.<Dispatch> = new Vector.<Dispatch>();
 		
+		public static var logger:Function;
+		public static var filter:Array = [];
 		
         /** Creates an EventDispatcher. */
         public function EventDispatcher()
@@ -108,11 +111,13 @@ package starling.events
          *  stops its propagation manually. */
         public function dispatchEvent(event:Event):void
         {
+			
             var bubbles:Boolean = event.bubbles;
             
             if (!bubbles && (mEventListeners == null || !(event.type in mEventListeners)))
                 return; // no need to do anything
             
+			
             // we save the current target and restore it later;
             // this allows users to re-dispatch events without creating a clone.
             
@@ -135,6 +140,12 @@ package starling.events
                 mEventListeners[event.type] as Vector.<Function> : null;
             var numListeners:int = listeners == null ? 0 : listeners.length;
             
+			//Log before we fire
+			if(mEventListeners)
+			{
+				logDispatch(event, mEventListeners);
+			}
+			
             if (numListeners)
             {
                 event.setCurrentTarget(this);
@@ -193,10 +204,15 @@ package starling.events
         /** Dispatches an event with the given parameters to all objects that have registered 
          *  listeners for the given type. The method uses an internal pool of event objects to 
          *  avoid allocations. */
-        public function dispatchEventWith(type:String, bubbles:Boolean=false, data:Object=null, onComplete:Function = null):Dispatch
+        public function dispatchEventWith(type:String, bubbles:Boolean=false, data:Object=null):void
         {
-           return dispatchEventClassWith(Event, type, bubbles, data, onComplete);
+           dispatchEventClassWith(Event, type, bubbles, data);
         }
+		
+		public function dispatchEventWithCallback(type:String, bubbles:Boolean=false, data:Object=null, onComplete:Function = null):Dispatch
+		{
+			return dispatchEventClassWith(Event, type, bubbles, data, onComplete);
+		}
 		
 		/**
 		 * Dispatch an event of a certain class type. This will get the event from the event pool and
@@ -220,20 +236,15 @@ package starling.events
 		 */
 		public function broadcastEventClassWith(listeners:*, eventClass:Class, type:String,  onComplete:Function = null, bubbles:Boolean=false, data:Object=null):Dispatch
 		{
-			if (bubbles || hasEventListener(type)) 
+			var event:Event = _prepareEvent(eventClass, type, onComplete, bubbles, data);
+			
+			//dispatch the event
+			for (var i:int = 0; i < listeners.length; i++) 
 			{
-				var event:Event = _prepareEvent(eventClass, type, onComplete, bubbles, data);
-				
-				//dispatch the event
-				for (var i:int = 0; i < listeners.length; i++) 
-				{
-					listeners[i].dispatchEvent(event);
-				}
-				
-				return _cleanupEvent(event);
+				listeners[i].dispatchEvent(event);
 			}
 			
-			return null;
+			return _cleanupEvent(event);
 		}
 		
 		protected function _prepareEvent(eventClass:Class, type:String,  onComplete:Function = null, bubbles:Boolean=false, data:Object=null):Event
@@ -241,8 +252,11 @@ package starling.events
 			var event:Event = Event.fromTypedPool(eventClass, type, bubbles, data);
 			
 			if(onComplete !== null){
+				event.dispatch = Dispatch.fromPool();
 				event.dispatch.onComplete = onComplete;
 				event.dispatch.data = data;
+				event.dispatch.type = type;
+				event.dispatch.dispatcher = this;
 				addDispatch(event.dispatch);
 			}
 			
@@ -282,6 +296,7 @@ package starling.events
 		 */
 		internal static function addDispatch(dispatch:Dispatch):void
 		{
+			log(dispatch.id+ ": added");
 			_dispatches.push(dispatch);
 		}
 		
@@ -294,6 +309,9 @@ package starling.events
 			if(i >= 0)
 			{
 				_dispatches.splice(i, 1);
+				log(dispatch.id+ ": removed");
+			}else{
+				log("Removing '" + dispatch.id + "' failed, dispatch was not found", 3);
 			}
 		}
 		
@@ -305,6 +323,69 @@ package starling.events
 			sizes += ",L"+DispatchLock.poolSize().toString();
 			
 			return sizes;	
+		}
+		
+		public static function logDispatch(event:Event, listeners:*):void
+		{
+			if(filter.indexOf(event.type)>=0) return;
+			
+			if(!event.dispatch && listeners is Dictionary)
+			{
+				log("Dispatching: "+ event.type, 1);
+				return;
+			}
+			
+			var logMsg:String = "";
+			logMsg += "Dispatching\n";
+			logMsg += "-------------\n";
+			logMsg += "Type:   '" + event.type + "'\n";
+			
+			if(event.dispatch)
+			{
+				logMsg +=  "Dpatch: " + event.dispatch.id + "\n";
+			}
+			var name:String;
+			
+			//dispatch the event
+			for (var i:int = 0; i < listeners.length; i++) 
+			{
+				name = getQualifiedClassName(listeners[i]);
+				logMsg += "On:     " + name.split("::")[1] + "\n";
+			}
+			logMsg += "-------------\n"
+			log(logMsg, 1);
+		}
+		
+		/**
+		 * Logs the current outstanding dispatches
+		 */
+		public static function logDispatchInfo():void
+		{
+			var message:String = "";
+			
+			message  = "\n\nASYNC STATUS";
+			message += "\n--------------";
+			message += "\nDispatch Count: " + dispatches.length;
+			
+			
+			message += "\n\nLocked Dispatches : " + (dispatches.length);
+			message += "\n--------------";
+			
+			for (var i2:int = 0; i2 < dispatches.length; i2++) 
+			{
+				message += "\nBroadcast: " + i2;
+				message += "\n"+dispatches[i2].toString();
+			}
+			
+			log(message, 1);
+		}
+		
+		internal static function log(message:String, level:int = 1):void
+		{
+			if(logger)
+			{
+				logger(message, level, "EventDispatcher");
+			}
 		}
 
     }

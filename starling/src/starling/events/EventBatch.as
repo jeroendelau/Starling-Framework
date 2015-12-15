@@ -76,6 +76,14 @@ package starling.events
 			{
 				_targets[i].dispatchEvent(_events[i]);
 			}
+			
+			//If there are no locks callback and remove, 
+			//providing it wasn't already removed by an instant
+			//a listner
+			if(_dispatch !== null && EventDispatcher.dispatches.indexOf(_dispatch)>=0){
+				_dispatch.callbackIfUnlocked();
+			}	
+			
 		}
 	}
 }
