@@ -103,8 +103,6 @@ package starling.events
 			by.addEventListener(unlockEvent, _onUnlock);
 			
 			EventDispatcher.logger(id+": Added lock, on: "+unlockEvent+", key: "+key+", lock count: "+locks.length.toString(), 1, "EventDispatcher");
-			EventDispatcher.logger(id+": "+locks[locks.length-1].key);
-			
 		}
 		
 		public function callbackIfUnlocked():void
