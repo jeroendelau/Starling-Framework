@@ -184,7 +184,7 @@ package starling.events
             // target to notify it that it's no longer being hovered over.
             for each (var touchData:Object in sHoveringTouchData)
                 if (touchData.touch.target != touchData.target)
-                    touchEvent.dispatch(touchData.bubbleChain);
+                    touchEvent.dispatchMe(touchData.bubbleChain);
             
             // dispatch events for the rest of our updated touches
             for each (touch in touches)

@@ -81,15 +81,15 @@ version = '1.7.1-SNAPSHOT'
 group = 'com.gamua'
 
 // Get version from Jenkins CI
-if("${System.env.JENKINS_BUILD_VERSION}" != "null") {
-    version = "${System.env.JENKINS_BUILD_VERSION}"
+if("${System.env.BUILD_ID}" != "null") {
+    version = "${System.env.BUILD_ID}"
 }
 
 // Get version from TeamCity CI
 if("${System.env.BUILD_NUMBER}" != "null") {
     version = "${System.env.BUILD_NUMBER}"
 }
-
+println version
 //----------------------------------
 //  Folders
 //----------------------------------
@@ -215,8 +215,9 @@ uploadArchives {
 }
 
 document.dependsOn copyDeps
-compile.dependsOn document
+//compile.dependsOn document
 compileTest.dependsOn compile
 test.dependsOn copyFixtures, compileTest
 
-defaultTasks 'clean_init', 'document', 'compile', 'compileTest', 'test', 'analyze'
+defaultTasks 'clean_init', 'compile', 'compileTest', 'test', 'analyze'
+//defaultTasks 'clean_init', 'document', 'compile', 'compileTest', 'test', 'analyze'

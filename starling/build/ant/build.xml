@@ -49,6 +49,7 @@
   <!-- Build SWC phase -->
   <target name="build-swc" description="compile starling.swc">
     <compc output="${deploy.dir}/${ant.project.name}.swc">
+    	<target-player>18.0</target-player>
       <include-sources dir="${src.dir}" includes="*" />
     </compc>
   </target>

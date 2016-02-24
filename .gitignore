@@ -9,12 +9,15 @@
 # =================================================================================================
 
 # Build and Release Folders
+publish/
+build/
 bin/
 bin-debug/
 bin-release/
 starling/doc/html/
 tests/libs/
 out/
+starling/bin/
 
 # Eclipse / Flash Builder
 .project

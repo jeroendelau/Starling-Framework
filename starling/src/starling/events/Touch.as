@@ -232,7 +232,7 @@ package starling.events
          *  a target is set). */
         internal function dispatchEvent(event:TouchEvent):void
         {
-            if (mTarget) event.dispatch(mBubbleChain);
+            if (mTarget) event.dispatchMe(mBubbleChain);
         }
         
         /** @private */

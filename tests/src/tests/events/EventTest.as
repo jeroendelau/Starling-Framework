@@ -18,12 +18,10 @@ package tests.events
     import org.flexunit.asserts.assertEquals;
     import org.flexunit.asserts.assertStrictlyEquals;
     import org.flexunit.asserts.assertTrue;
+	import org.flexunit.asserts.assertFalse;
     import org.hamcrest.assertThat;
     import org.hamcrest.object.instanceOf;
     
-    import spurs.statemachine.State;
-    import spurs.statemachine.StateEvent;
-    import spurs.test.flexunit.CallbackHandler;
     
     import starling.display.Sprite;
     import starling.events.Dispatch;
@@ -348,7 +346,7 @@ package tests.events
 			var returnData:Object;
 			
 			dispatcher.addEventListener(eventType, onEvent);
-			var dispatch:Dispatch = dispatcher.dispatchEventWith(eventType, true, data, onComplete);
+			var dispatch:Dispatch = dispatcher.dispatchEventWithCallback(eventType, true, data, onComplete);
 			
 			Assert.assertNotNull(dispatch);
 			Assert.assertStrictlyEquals(returnData, data);
@@ -388,7 +386,7 @@ package tests.events
 			
 		}
 		
-		[Test(async)]
+		[Test]
 		public function testLockedEvent():void
 		{
 			const eventType:String = "test";
@@ -399,29 +397,59 @@ package tests.events
 			var event:Event;
 			var lock:DispatchLock;
 			
-			var callback:Function = CallbackHandler.asyncHandler(this, testCallbackAfterLock, data);
+			var released:Boolean = false;
+			var locked:Boolean = false;
 			
-			dispatcher.addEventListener(eventType, onEvent);
-			dispatcher.dispatchEventWith(eventType, false, data, callback);
+			dispatcher.addEventListener(eventType, onEvent1);
+			dispatcher.dispatchEventWithCallback(eventType, false, data, released1);
 			
-			function onEvent(e:Event):void
+			function onEvent1(e:Event):void
 			{
-				event = e;	
+				event = e;
 				e.dispatch.addLock(locker, eventType);
-				setTimeout(release, 1000);
+				locked = true;
 			}
 			
-			function release():void
+			function released1():void
 			{
-				data.testVar = "released";
-				locker.dispatchEventWith(eventType);	
+				locked = false;
+				released = true;
 			}
-			
+			assertTrue(locked);
+			assertFalse(released);
 		}
 		
-		public function testCallbackAfterLock(data:Object):void
+		[Test]
+		public function testReleaseLockedEvent():void
 		{
-			assertEquals(data.testVar, "released");
+			const eventType:String = "test";
+			
+			var dispatcher:Sprite = new Sprite();
+			var locker:Sprite = new Sprite();
+			var data:Object = {"testVar":"data"};
+			var event:Event;
+			var lock:DispatchLock;
+			
+			var released:Boolean = false;
+			var locked:Boolean = false;
+			
+			dispatcher.addEventListener(eventType, onEvent2);
+			dispatcher.dispatchEventWithCallback(eventType, false, data, released2);
+			
+			function onEvent2(e:Event):void
+			{
+				event = e;
+				e.dispatch.addLock(locker, eventType);
+				locker.dispatchEventWith(eventType);
+			}
+			
+			function released2():void
+			{
+				released = true;
+			}
+			
+			assertFalse(locked);
+			assertTrue(released);
 		}
     }
 }

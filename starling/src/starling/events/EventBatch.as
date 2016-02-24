@@ -38,6 +38,8 @@ package starling.events
 		{
 			_dispatch = Dispatch.fromPool();
 			_dispatch.onComplete = onComplete;
+			EventDispatcher.addDispatch(_dispatch);
+			
 			_rootData = {"dispatch": _dispatch};
 			_targets = new Vector.<EventDispatcher>();
 			_events = new Vector.<Event>();
