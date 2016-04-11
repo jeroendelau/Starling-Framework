@@ -50,6 +50,10 @@ package starling.events
 		public static var logger:Function;
 		public static var filter:Array = [];
 		
+		public function get eventParent():EventDispatcher {return _eventParent;}
+		public function set eventParent(value:EventDispatcher):void{ _eventParent = value}
+		protected var _eventParent:EventDispatcher;
+		
         /** Creates an EventDispatcher. */
         public function EventDispatcher()
         {  }
@@ -124,8 +128,8 @@ package starling.events
             var previousTarget:EventDispatcher = event.target;
             event.setTarget(this);
             
-            if (bubbles && this is DisplayObject) bubbleEvent(event);
-            else                                  invokeEvent(event);
+            if (bubbles) bubbleEvent(event);
+            else         invokeEvent(event);
             
             if (previousTarget) event.setTarget(previousTarget);
         }
@@ -182,13 +186,13 @@ package starling.events
             // that way, changes done by the listeners won't affect the bubble chain.
             
             var chain:Vector.<EventDispatcher>;
-            var element:DisplayObject = this as DisplayObject;
+            var element:EventDispatcher = this as EventDispatcher;
             var length:int = 1;
             
             if (sBubbleChains.length > 0) { chain = sBubbleChains.pop(); chain[0] = element; }
             else chain = new <EventDispatcher>[element];
             
-            while ((element = element.parent) != null)
+            while ((element = element.eventParent) != null)
                 chain[int(length++)] = element;
 
             for (var i:int=0; i<length; ++i)

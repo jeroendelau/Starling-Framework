@@ -727,7 +727,9 @@ package starling.core
         
         /** Raises the draw count by a specific value. Call this method in custom render methods
          *  to keep the statistics display in sync. */
-        public function raiseDrawCount(value:uint=1):void { mDrawCount += value; }
+        public function raiseDrawCount(value:uint=1):void { 
+			mDrawCount += value; 
+		}
         
         /** Indicates the number of stage3D draw calls. */
         public function get drawCount():int { return mDrawCount; }

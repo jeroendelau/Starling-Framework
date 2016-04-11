@@ -1,7 +1,12 @@
 package starling.events
 {
+	import starling.core.starling_internal;
+
+	use namespace starling_internal;
+	
 	public interface IEventDispatcher
 	{
+		function get eventParent():EventDispatcher
 		function addEventListener(type:String, listener:Function):void;
 		function removeEventListener(type:String, listener:Function):void;
 		function removeEventListeners(type:String=null):void;

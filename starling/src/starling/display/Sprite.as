@@ -227,7 +227,7 @@ package starling.display
                 var alpha:Number = parentAlpha * this.alpha;
                 var numBatches:int = mFlattenedContents.length;
                 var mvpMatrix:Matrix3D = support.mvpMatrix3D;
-                
+                trace(this.name);
                 support.finishQuadBatch();
                 support.raiseDrawCount(numBatches);
                 

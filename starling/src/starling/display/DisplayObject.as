@@ -27,6 +27,7 @@ package starling.display
     import starling.errors.AbstractMethodError;
     import starling.events.Event;
     import starling.events.EventDispatcher;
+    import starling.events.IEventDispatcher;
     import starling.events.TouchEvent;
     import starling.filters.FragmentFilter;
     import starling.utils.HAlign;
@@ -972,6 +973,9 @@ package starling.display
 
         /** The display object container that contains this display object. */
         public function get parent():DisplayObjectContainer { return mParent; }
+		
+		/** The display object container that contains this display object. */
+		override public function get eventParent():EventDispatcher { return mParent; }
         
         /** The topmost object in the display tree the object is part of. */
         public function get base():DisplayObject
