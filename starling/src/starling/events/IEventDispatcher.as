@@ -6,7 +6,7 @@ package starling.events
 	
 	public interface IEventDispatcher
 	{
-		function get eventParent():EventDispatcher
+		function get eventParent():IEventDispatcher
 		function addEventListener(type:String, listener:Function):void;
 		function removeEventListener(type:String, listener:Function):void;
 		function removeEventListeners(type:String=null):void;

@@ -14,7 +14,6 @@ package starling.events
     import flash.utils.getQualifiedClassName;
     
     import starling.core.starling_internal;
-    import starling.display.DisplayObject;
     
     use namespace starling_internal;
     
@@ -50,9 +49,9 @@ package starling.events
 		public static var logger:Function;
 		public static var filter:Array = [];
 		
-		public function get eventParent():EventDispatcher {return _eventParent;}
-		public function set eventParent(value:EventDispatcher):void{ _eventParent = value}
-		protected var _eventParent:EventDispatcher;
+		public function get eventParent():IEventDispatcher {return _eventParent;}
+		public function set eventParent(value:IEventDispatcher):void{ _eventParent = value}
+		protected var _eventParent:IEventDispatcher;
 		
         /** Creates an EventDispatcher. */
         public function EventDispatcher()
@@ -185,19 +184,21 @@ package starling.events
             // we determine the bubble chain before starting to invoke the listeners.
             // that way, changes done by the listeners won't affect the bubble chain.
             
-            var chain:Vector.<EventDispatcher>;
-            var element:EventDispatcher = this as EventDispatcher;
+            var chain:Vector.<IEventDispatcher>;
+            var element:IEventDispatcher = this as IEventDispatcher;
             var length:int = 1;
-            
+            var dispatcher:EventDispatcher;
+			
             if (sBubbleChains.length > 0) { chain = sBubbleChains.pop(); chain[0] = element; }
-            else chain = new <EventDispatcher>[element];
+            else chain = new <IEventDispatcher>[element];
             
             while ((element = element.eventParent) != null)
                 chain[int(length++)] = element;
 
             for (var i:int=0; i<length; ++i)
             {
-                var stopPropagation:Boolean = chain[i].invokeEvent(event);
+				dispatcher = chain[i] as EventDispatcher;
+                var stopPropagation:Boolean = dispatcher.invokeEvent(event);
                 if (stopPropagation) break;
             }
             
@@ -224,6 +225,7 @@ package starling.events
 		 */
 		public function dispatchEventClassWith(eventClass:Class, type:String, bubbles:Boolean=false, data:Object=null, onComplete:Function = null):Dispatch
 		{
+			//common error, so check
 			if (bubbles || hasEventListener(type)) 
 			{
 				var event:Event = _prepareEvent(eventClass, type, onComplete, bubbles, data);

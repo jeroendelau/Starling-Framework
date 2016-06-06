@@ -122,6 +122,23 @@ package starling.events
 		}
 		
 		/**
+		 * Cancel the dispatch, removes all lock listeners, and return the dispatch to pool
+		 */
+		public function cancel():void
+		{
+			//Remove all locks, hence all event listeners
+			for (var i:int = 0; i < locks.length; i++) 
+			{
+				_removeLock(locks[i]);
+				i--;
+			}
+			
+			//return to pool
+			EventDispatcher.removeDispatch(this);
+			Dispatch.toPool(this);
+		}
+		
+		/**
 		 * Callback attached to every lock event. Will remove the
 		 * lock and fire the callback if no locks are remaining
 		 */

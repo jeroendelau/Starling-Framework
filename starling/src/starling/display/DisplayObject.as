@@ -975,7 +975,7 @@ package starling.display
         public function get parent():DisplayObjectContainer { return mParent; }
 		
 		/** The display object container that contains this display object. */
-		override public function get eventParent():EventDispatcher { return mParent; }
+		override public function get eventParent():IEventDispatcher { return mParent; }
         
         /** The topmost object in the display tree the object is part of. */
         public function get base():DisplayObject
